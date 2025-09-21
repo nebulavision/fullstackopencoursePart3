@@ -94,7 +94,7 @@ app.get("/info", (req, res) => {
     `);
 });
 
-app.get("healthcheck", (req, res) => {
+app.get("/healthcheck", (req, res) => {
   res.json({"status": "ok"});
 });
 
