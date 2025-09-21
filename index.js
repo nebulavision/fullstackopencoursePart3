@@ -5,22 +5,22 @@ import cors from 'cors';
 const PORT = process.env.PORT || 3002;
 let contacts = [
   {
-    id: 1,
+    id: "1",
     name: "Arto Hellas",
     number: "040-123456",
   },
   {
-    id: 2,
+    id: "2",
     name: "Ada Lovelace",
     number: "39-44-5323523",
   },
   {
-    id: 3,
+    id: "3",
     name: "Dan Abramov",
     number: "12-43-234345",
   },
   {
-    id: 4,
+    id: "4",
     name: "Mary Poppendieck",
     number: "39-23-6423122",
   },
@@ -30,7 +30,7 @@ morgan.token('body', req => JSON.stringify(req.body));
 
 const app = express();
 app.use(express.json());
-app.use(express.statis('dist'));
+app.use(express.static('dist'));
 app.use(morgan(":method :url :status :res[content-length] - :response-time ms :body"));
 app.use(cors());
 
@@ -39,7 +39,9 @@ app.get("/api/persons", (req, res) => {
 });
 
 app.get("/api/persons/:id", (req, res) => {
-  const contact = contacts.find((contact) => contact.id === Number(req.params.id));
+  const contact = contacts.find((contact) => contact.id === req.params.id);
+  console.log(contact);
+
 
   if (isNaN(req.params.id))
     return res.status(400).json({ error: "The id must be a number." });
@@ -73,7 +75,8 @@ app.post('/api/persons', (req, res) => {
 });
 
 app.delete('/api/persons/:id', (req, res) => {
-    const personIndex = contacts.findIndex(contact => contact.id === Number(req.params.id));
+    const personIndex = contacts.findIndex(contact => contact.id === req.params.id);
+    console.log(personIndex);
 
     if(isNaN(req.params.id)) return res.status(400).json({error: "The id must be a number."});
     if(personIndex === -1) return res.status(404).json({error: 'Resource not found.'});
