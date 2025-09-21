@@ -1,6 +1,8 @@
-import express from "express";
+import express from 'express';
+import morgan from 'morgan';
+import cors from 'cors';
 
-const PORT = 3002;
+const PORT = process.env.PORT || 3002;
 let contacts = [
   {
     id: 1,
@@ -24,8 +26,13 @@ let contacts = [
   },
 ];
 
+morgan.token('body', req => JSON.stringify(req.body));
+
 const app = express();
 app.use(express.json());
+app.use(express.statis('dist'));
+app.use(morgan(":method :url :status :res[content-length] - :response-time ms :body"));
+app.use(cors());
 
 app.get("/api/persons", (req, res) => {
   res.json(contacts);
@@ -49,7 +56,6 @@ app.post('/api/persons', (req, res) => {
   if(!('name' in contact)) return res.status(422).json({error: "The name is missing."});
   const isNameDuplicate = contacts.find(n => n.name === contact.name);
   if(isNameDuplicate) return res.status(409).json({error: "A resoruce with the same name already exists."});
-
 
   if('id' in contact){
     if(isNaN(contact.id)) return res.status(400).json({error: "The id must be a number."}); 
