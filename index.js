@@ -65,15 +65,10 @@ app.post("/api/persons", async (req, res, next) => {
   }
 });
 
-app.put("/api/persons/:id", async (req, res) => {
-  const body = req.body;
+app.put("/api/persons/:id", async (req, res, next) => {
+  const { contactName, number } = req.body;
 
-  const contact = {
-    name: body.name,
-    number: body.number
-  };
-
-  Contact.findByIdAndUpdate(req.params.id, contact, { new: true })
+  Contact.findByIdAndUpdate(req.params.id, { contactName, number}, { new: true, runValidators: true, context: 'query' })
     .then(updatedContact => res.json(updatedContact))
     .catch(err => next(err));
 
