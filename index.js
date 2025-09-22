@@ -1,101 +1,100 @@
-import express from 'express';
-import morgan from 'morgan';
-import cors from 'cors';
+import express from "express";
+import morgan from "morgan";
+import cors from "cors";
+import { PORT } from "./config.js";
+import { Contact } from "./models/contact.js";
+import mongoose from "mongoose";
 
-const PORT = process.env.PORT || 3002;
-let contacts = [
-  {
-    id: "1",
-    name: "Arto Hellas",
-    number: "040-123456",
-  },
-  {
-    id: "2",
-    name: "Ada Lovelace",
-    number: "39-44-5323523",
-  },
-  {
-    id: "3",
-    name: "Dan Abramov",
-    number: "12-43-234345",
-  },
-  {
-    id: "4",
-    name: "Mary Poppendieck",
-    number: "39-23-6423122",
-  },
-];
-
-morgan.token('body', req => JSON.stringify(req.body));
+morgan.token("body", (req) => JSON.stringify(req.body));
 
 const app = express();
 app.use(express.json());
-app.use(express.static('dist'));
-app.use(morgan(":method :url :status :res[content-length] - :response-time ms :body"));
+app.use(express.static("dist"));
+app.use(
+  morgan(":method :url :status :res[content-length] - :response-time ms :body")
+);
 app.use(cors());
 
-app.get("/api/persons", (req, res) => {
-  res.json(contacts);
+app.get("/api/persons", async (req, res) => {
+  try {
+    const contacts = await Contact.find({});
+
+    res.json(contacts);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.get("/api/persons/:id", (req, res) => {
-  const contact = contacts.find((contact) => contact.id === req.params.id);
-  console.log(contact);
+app.get("/api/persons/:id", async (req, res) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({ error: "Invalid ID format" });
+  }
+  try {
+    const contact = await Contact.findById(req.params.id);
 
-
-  if (isNaN(req.params.id))
-    return res.status(400).json({ error: "The id must be a number." });
-  if (!contact) return res.status(404).json({ error: "Resource not found." });
-
-  res.json(contact);
+    if (contact) {
+      res.json(contact);
+    } else {
+      res.status(404).json({ error: "Resource not found." });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.post('/api/persons', (req, res) => {
-  if(!req.body) return res.status(422).json({error: "The body is missing."});
+app.post("/api/persons", async (req, res) => {
+  try {
+    if (!req.body)
+      return res.status(422).json({ error: "The body is missing." });
 
-  const contact = req.body;
+    const existingContact = await Contact.findOne({ name: req.body.name });
+    if (existingContact)
+      return res
+        .status(409)
+        .json({ error: "A resource with the same name already exists." });
 
-  if(!('name' in contact)) return res.status(422).json({error: "The name is missing."});
-  const isNameDuplicate = contacts.find(n => n.name === contact.name);
-  if(isNameDuplicate) return res.status(409).json({error: "A resoruce with the same name already exists."});
+    const newContact = new Contact({
+      name: req.body.name,
+      number: req.body.number,
+    });
+    const savedContact = await newContact.save();
 
-  if('id' in contact){
-    if(isNaN(contact.id)) return res.status(400).json({error: "The id must be a number."}); 
+    res.status(201).json(savedContact);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-    const isIdDuplicate = contacts.find(n => n.id === contact.id);
-
-    if(isIdDuplicate) return res.status(409).json({error: "A resoruce with the same id already exists."});
-  }else{
-    contact.id = Math.floor(Math.random() * 5000);
+app.delete("/api/persons/:id", async (req, res) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({ error: "Invalid ID format" });
   }
 
-  contacts = contacts.concat(contact);
+  try {
+    const deletedContact = await Contact.findByIdAndDelete(req.params.id);
 
-  res.json(contact);
+    if (deletedContact) {
+      res.status(204).end();
+    } else {
+      return res.status(404).json({ error: "Resource not found." });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.delete('/api/persons/:id', (req, res) => {
-    const personIndex = contacts.findIndex(contact => contact.id === req.params.id);
-    console.log(personIndex);
-
-    if(isNaN(req.params.id)) return res.status(400).json({error: "The id must be a number."});
-    if(personIndex === -1) return res.status(404).json({error: 'Resource not found.'});
-
-    contacts.splice(personIndex, 1);
-
-    res.status(204).end();
-});
-
-app.get("/info", (req, res) => {
+app.get("/info", async (req, res) => {
   const date = new Date();
   res.send(`
-        <p>Phonebook has info for ${contacts.length} people</p>
+        <p>Phonebook has info for ${await Contact.countDocuments()} people</p>
         <p>${date}</p>
     `);
 });
 
 app.get("/healthcheck", (req, res) => {
-  res.json({"status": "ok"});
+  const dbState = mongoose.connection.readyState === 1 ? "connected" : "not connected"; 
+
+  res.json({ serverStatus: "ok", dbStatus:  dbState });
 });
 
 app.listen(PORT, () =>
