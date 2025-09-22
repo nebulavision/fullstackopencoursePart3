@@ -15,17 +15,17 @@ app.use(
 );
 app.use(cors());
 
-app.get("/api/persons", async (req, res) => {
+app.get("/api/persons", async (req, res, next) => {
   try {
     const contacts = await Contact.find({});
 
     res.json(contacts);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-app.get("/api/persons/:id", async (req, res) => {
+app.get("/api/persons/:id", async (req, res, next) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     return res.status(400).json({ error: "Invalid ID format" });
   }
@@ -38,11 +38,11 @@ app.get("/api/persons/:id", async (req, res) => {
       res.status(404).json({ error: "Resource not found." });
     }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-app.post("/api/persons", async (req, res) => {
+app.post("/api/persons", async (req, res, next) => {
   try {
     if (!req.body)
       return res.status(422).json({ error: "The body is missing." });
@@ -61,11 +61,25 @@ app.post("/api/persons", async (req, res) => {
 
     res.status(201).json(savedContact);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-app.delete("/api/persons/:id", async (req, res) => {
+app.put("/api/persons/:id", async (req, res) => {
+  const body = request.body;
+
+  const contact = {
+    name: body.name,
+    number: body.number
+  };
+
+  Contact.findByIdAndUpdate(req.params.is, contact, { new: true })
+    .then(updatedContact => res.json(updatedContact))
+    .catch(err => next(err));
+
+});
+
+app.delete("/api/persons/:id", async (req, res, next) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     return res.status(400).json({ error: "Invalid ID format" });
   }
@@ -79,7 +93,7 @@ app.delete("/api/persons/:id", async (req, res) => {
       return res.status(404).json({ error: "Resource not found." });
     }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
@@ -97,6 +111,17 @@ app.get("/healthcheck", (req, res) => {
   res.json({ serverStatus: "ok", dbStatus:  dbState });
 });
 
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message)
+
+  if (error.name === 'CastError') {
+    return response.status(400).send({ error: 'malformatted id' })
+  } 
+
+  next(error)
+}
+
+app.use(errorHandler);
 app.listen(PORT, () =>
   console.log(`Server running on http://localhost:${PORT}`)
 );
