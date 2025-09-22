@@ -68,7 +68,7 @@ app.post("/api/persons", async (req, res, next) => {
 app.put("/api/persons/:id", async (req, res, next) => {
   const { contactName, number } = req.body;
 
-  Contact.findByIdAndUpdate(req.params.id, { contactName, number}, { new: true, runValidators: true, context: 'query' })
+  Contact.findByIdAndUpdate(req.params.id, { contactName, number }, { new: true, runValidators: true, context: 'query' })
     .then(updatedContact => res.json(updatedContact))
     .catch(err => next(err));
 
@@ -101,7 +101,7 @@ app.get("/info", async (req, res) => {
 });
 
 app.get("/healthcheck", (req, res) => {
-  const dbState = mongoose.connection.readyState === 1 ? "connected" : "not connected"; 
+  const dbState = mongoose.connection.readyState === 1 ? "connected" : "not connected";
 
   res.json({ serverStatus: "ok", dbStatus:  dbState });
 });
@@ -112,7 +112,7 @@ const errorHandler = (error, request, response, next) => {
   if (error.name === 'CastError') {
     return response.status(400).send({ error: 'malformatted id' })
   } else if (error.name === 'ValidationError') {
-    return response.status(422).send({ error: error.message});
+    return response.status(422).send({ error: error.message });
   }
 
   next(error)
