@@ -66,14 +66,14 @@ app.post("/api/persons", async (req, res, next) => {
 });
 
 app.put("/api/persons/:id", async (req, res) => {
-  const body = request.body;
+  const body = req.body;
 
   const contact = {
     name: body.name,
     number: body.number
   };
 
-  Contact.findByIdAndUpdate(req.params.is, contact, { new: true })
+  Contact.findByIdAndUpdate(req.params.id, contact, { new: true })
     .then(updatedContact => res.json(updatedContact))
     .catch(err => next(err));
 
